@@ -1,0 +1,35 @@
+import { model, Schema } from "mongoose";
+
+const messageShema = new Schema(
+  {
+    content: {
+      type: String,
+      required: true,
+      minlength: 3,
+      maxlength: 100,
+      trim: true,
+    },
+    receiver: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    sender: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: {
+      createdAt: true,
+      updatedAt: false,
+    },
+  },
+);
+
+
+export const Messsage=model('Message',messageShema)
