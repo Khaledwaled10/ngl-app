@@ -10,8 +10,6 @@ const sendEmailProcess = nodemailer.createTransport({
 
 export async function sendEmail(to, subject, html) {
   try {
-    console.log("EMAIL USER:", process.env.USER_SEND_EMAIL);
-    console.log("SENDING EMAIL TO:", to);
 
     const info = await sendEmailProcess.sendMail({
       from: `"Example Team" <${process.env.USER_SEND_EMAIL}>`,
@@ -20,7 +18,6 @@ export async function sendEmail(to, subject, html) {
       html,
     });
 
-    console.log("EMAIL SENT:", info.messageId);
 
     return info;
   } catch (err) {
