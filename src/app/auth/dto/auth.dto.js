@@ -8,6 +8,7 @@ export const registerDto = z.object({
   gander: z.enum(["male", "female"]).optional(),
 });
 
+
 export const verfiyDto = z.object({
   email: z.email().toLowerCase().trim(),
 code:z.string().length(6)

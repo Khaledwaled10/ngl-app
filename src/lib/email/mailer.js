@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 
+
 const sendEmailProcess = nodemailer.createTransport({
   service: "gmail",
   auth: {

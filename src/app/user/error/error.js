@@ -1,4 +1,4 @@
-import { AppError } from "../../../common/error/appError.js";
+import { AppError } from "../../../pkj/error/appError.js";
 
 export function userExist() {
   throw new AppError("User exist", 409);

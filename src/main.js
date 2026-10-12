@@ -2,16 +2,22 @@ import { config } from "dotenv";
 
 config();
 
-import "./common/db/mongoose.js";
+import "./lib/db/mongoose.js";
 
 import express from "express";
 import cors from "cors";
-
+import cookieParser from "cookie-parser";
 import authRouter from "./app/auth/auth.route.js";
 import userRouter from "./app/user/user.route.js";
 import messageRouter from "./app/message/message.route.js";
-import { logger } from "./common/logger/logger.js";
 
+import { globalErrorHandler } from "./pkj/error/error.handler.js";
+import { correlationId } from "./lib/correlationId/correlationId.js";
+
+export function createApp(){
+
+
+  
 const app = express();
 
 app.use(
@@ -20,8 +26,13 @@ app.use(
   })
 );
 
+app.use('/uploads',express.static('uploads'))
 app.use(express.json());
 
+app.use(correlationId);
+
+
+app.use(cookieParser());
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/message", messageRouter);
@@ -34,24 +45,15 @@ app.get("/test", (req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-    logger.error(err)
-  if (err.isOptional) {
-    return res.status(err.statusCode).json({
-      success: false,
-      message: err.message,
-
-    });
-  }
-
-  return res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-  });
-});
+app.use(
+  
+globalErrorHandler
+);
 
 
 
-app.listen(3030, () => {
-  logger.info("Server start in port 3030");
-});
+
+
+return app;
+
+}

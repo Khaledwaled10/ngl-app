@@ -1,13 +1,15 @@
 import * as authRepository from "../repository/auth.repository.js";
 import * as otpRepository from "../repository/otp.repository.js";
 import crypto from "crypto";
-import { sendEmail } from "../../../common/email/mailer.js";
+import { sendEmail } from "../../../lib/email/mailer.js";
 import * as errorAuth from"../error/error.js"
 import * as errorUser from "../../user/error/error.js"
 import * as userRepository from "../../user/repository/user.repository.js";
-import { toMs } from "../../../common/time/time.js";
 import { genrateToken } from "../utilts/token.js";
 import { comparePassword, hashPassword } from "../utilts/hash.js";
+import { verfiyGoogle } from "../utilts/googleLogin.js";
+import { mailjetProvider } from "../../../lib/email/initMailJet.js";
+
 
 export async function register(userData) {
 
@@ -16,15 +18,17 @@ export async function register(userData) {
 errorUser.userExist()
   }
 
-  userData.password = await hashPassword(userExist.password)
+  userData.password = await hashPassword(userData.password)
   const Createuser = await authRepository.createUser(userData);
   const code = crypto.randomInt(100000, 999999).toString();
-  await otpRepository.createOtp({
-    code: code,
-    email: userData.email,
-    expiredAt: new Date(Date.now() + toMs(5, "minutes")),
-  });
-  await sendEmail(
+ 
+ await otpRepository.createOtp({
+  email: userData.email,
+  code,
+});
+
+
+  await mailjetProvider.sendmail(
     userData.email,
     "Vervication code",
     `<h1>OTP CODE: ${code}</h1>`,
@@ -52,7 +56,7 @@ export async function verfiyAccount(email, code) {
     errorAuth.otpExpired()
   };
   //code true
-  if (otp.code !== code) {
+  if (otp !== code) {
     errorAuth.invalidOtp()
   };
 
@@ -111,14 +115,15 @@ export async function sendOtp(email) {
   //generate otp
 
   const code = crypto.randomInt(100000, 999999).toString();
-  await otpRepository.createOtp({
-    code,
-    email: user.email,
-    expiredAt: new Date(Date.now() + toMs(5, "minutes")),
-  });
+
+ await otpRepository.createOtp({
+   email: user.email,
+  code,
+});
+
 
   //send otp
-  sendEmail(user.email, "Vervication code", `<h1>OTP CODE: ${code}</h1>`);
+ await mailjetProvider.sendmail(user.email, "Vervication code", `<h1>OTP CODE: ${code}</h1>`);
 }
 
 
@@ -130,7 +135,7 @@ if(!otp) {
   errorAuth.otpExpired()
 }
   //check otp true
-if(otp.code!==code){
+if(otp!==code){
   errorAuth.invalidOtp()
 }
   //
@@ -139,6 +144,57 @@ if(otp.code!==code){
 
   await userRepository.updateUser(email,{password:hash_password})
 
-otpRepository.deleteOtp(email)
+await otpRepository.deleteOtp(email)
   
+}
+
+
+
+
+export async function loginGoogle(idToken) {
+  const payload = await verfiyGoogle(idToken);
+
+  console.log("Google email:", payload.email);
+
+  const user = await authRepository.userExist(payload.email);
+
+  console.log("User found:", user);
+
+  if (user) {
+    console.log("USER ALREADY EXISTS");
+
+    return genrateToken({
+      id: user._id,
+      email: user.email
+    });
+  }
+
+  console.log("USER NOT FOUND - CREATING");
+
+  const createUser = await authRepository.createUser({
+    name: payload.name,
+    email: payload.email,
+    provider: 'google',
+    isVerified: true
+  });
+
+  return genrateToken({
+    id: createUser._id,
+    email: createUser.email
+  });
+}
+
+
+
+
+
+
+export async function testEmail() {
+
+  await mailjetProvider.sendmail(
+    "YOUR_EMAIL@gmail.com",
+    "Test Email",
+    "<h1>Hello from NGL App 🚀</h1>"
+  );
+
 }

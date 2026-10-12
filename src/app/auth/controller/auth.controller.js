@@ -1,5 +1,5 @@
-import { toMs } from "../../../common/time/time.js";
-import { validationBody } from "../../../common/validation/validation.js";
+import { toMs } from "../../../pkj/time/time.js";
+import { validationBody } from "../../../lib/validation/validation.js";
 import { loginDto, registerDto, sentDto, verfiyDto } from "../dto/auth.dto.js";
 import * as authService from "../service/auth.service.js";
 import { resetPasswordDto } from './../dto/auth.dto.js';
@@ -91,6 +91,29 @@ export async function resetPassword(req, res, next) {
       await authService.resetPassword(email,code,newPassword)
     return res.status(201).json({
       message: "Reset Password successfully",
+      success: true,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function loginWithGoogle(req, res, next) {
+  try {
+    const token = await authService.loginGoogle(req.body.idToken);
+
+    console.log("TOKEN FROM SERVICE:", token);
+    console.log("TOKEN TYPE:", typeof token);
+
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      maxAge: toMs(1, "hours")
+    });
+
+    return res.status(201).json({
+      message: "Login With Google successfully",
       success: true,
     });
 

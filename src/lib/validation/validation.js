@@ -1,5 +1,5 @@
 import {z}from "zod"
-import { AppError } from "../error/appError.js"
+import { AppError } from "../../pkj/error/appError.js"
 
 export function validationBody(dto,body){
 const result=dto.safeParse(body)
