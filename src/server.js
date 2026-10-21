@@ -7,8 +7,8 @@ const app = createApp();
 
 const server=http.createServer(app)
 
-server.listen(3030, () => {
-  logger.info("Server start in port 3030");
+server.listen(3001, () => {
+  logger.info("Server start in port 3001");
 });
 
 async function shutDown(){

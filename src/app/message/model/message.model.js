@@ -22,6 +22,16 @@ const messageShema = new Schema(
       type: Boolean,
       default: false,
     },
+
+type: {
+  type: String,
+  enum: ["anonymous", "public"],
+  default: "anonymous",
+  required: true,
+},
+
+
+
   },
   {
     timestamps: {

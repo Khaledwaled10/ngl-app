@@ -38,6 +38,7 @@ app.use("/user", userRouter);
 app.use("/message", messageRouter);
 
 app.get("/test", (req, res) => {
+  console.log('success')
   res.json({
     message: "test success",
     success: true,

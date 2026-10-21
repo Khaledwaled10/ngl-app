@@ -18,3 +18,38 @@ export async function deleteOtp(email) {
 
   return await cacheProvider.del(key);
 }
+
+
+
+
+export async function createTwoFactorOtp(email, code) {
+  return await cacheProvider.set(`2fa:enable:${email}`, code, 300);
+}
+
+export async function getTwoFactorOtp(email) {
+  return await cacheProvider.get(`2fa:enable:${email}`);
+}
+
+export async function deleteTwoFactorOtp(email) {
+  return await cacheProvider.del(`2fa:enable:${email}`);
+}
+
+
+
+
+
+export async function createLoginOtp(email, code) {
+
+return await cacheProvider.set(`2fa:login:${email}`,code,300)
+
+
+}
+
+
+export async function getLoginOtp(email) {
+  return await cacheProvider.get(`2fa:login:${email}`);
+}
+
+export async function deleteLoginOtp(email) {
+  return await cacheProvider.del(`2fa:login:${email}`);
+}

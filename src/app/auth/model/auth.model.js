@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { boolean } from "zod";
 
 const schemaUser = new Schema(
   {
@@ -41,6 +42,24 @@ const schemaUser = new Schema(
       enum: ["male", "female"],
       default: "male",
     },
+
+    loginAttempts: {
+  type: Number,
+  default: 0,
+},
+
+
+lockUntil: {
+  type: Date,
+  default: null,
+},
+
+
+twoFactorEnabled: {
+  type: Boolean,
+  default: false,
+},
+
     profilePicPath:String,
     coverImagePaths:[String],
     cvPath:String

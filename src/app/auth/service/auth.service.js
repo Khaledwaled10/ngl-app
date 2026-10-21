@@ -1,6 +1,6 @@
 import * as authRepository from "../repository/auth.repository.js";
 import * as otpRepository from "../repository/otp.repository.js";
-import crypto from "crypto";
+import crypto, { randomUUID } from "crypto";
 import { sendEmail } from "../../../lib/email/mailer.js";
 import * as errorAuth from"../error/error.js"
 import * as errorUser from "../../user/error/error.js"
@@ -37,65 +37,126 @@ errorUser.userExist()
 }
 
 export async function verfiyAccount(email, code) {
-  // user exist
+  console.log("1. verifyAccount started", email);
+
   const userExist = await authRepository.userExist(email);
+  console.log("2. user exists:", Boolean(userExist));
 
-  if (!userExist){
+  if (!userExist) {
     errorUser.userNotExist();
-  };
+  }
 
-  //acount verfied
-  if (userExist.isVerified == true){
-    errorUser.userAlreadyVerified()
-  };
-
-  //code exist
+  if (userExist.isVerified === true) {
+    errorUser.userAlreadyVerified();
+  }
 
   const otp = await otpRepository.getOtp(email);
-  if (!otp){
-    errorAuth.otpExpired()
-  };
-  //code true
-  if (otp !== code) {
-    errorAuth.invalidOtp()
-  };
+  console.log("3. OTP exists:", Boolean(otp));
+  console.log("4. OTP types:", typeof otp, typeof code);
 
-  //update user
+  if (!otp) {
+    errorAuth.otpExpired();
+  }
+
+  if (String(otp) !== String(code)) {
+    errorAuth.invalidOtp();
+  }
+
   const updateUser = await userRepository.updateUser(email, {
     isVerified: true,
   });
 
-  //delet otp
   await otpRepository.deleteOtp(email);
 
   return updateUser;
 }
 
+
+
+
 export async function login(email, password) {
-  //exist user
+  const user = await authRepository.userExist(email);
 
-  const userExist = await authRepository.userExist(email);
+  if (!user) {
+    errorUser.userNotExist();
+  }
 
-  if (!userExist) {
-    errorUser.userNotExist()
+  const now = new Date();
+
+  if (user.lockUntil && user.lockUntil > now) {
+    errorAuth.accountTemporarilyLocked();
+  }
+
+  if (user.lockUntil && user.lockUntil <= now) {
+    user.loginAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
+  }
+
+  if (!user.isVerified) {
+    errorUser.userNotVerified();
+  }
+
+  const match = await comparePassword(password, user.password);
+
+  if (!match) {
+    user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+    if (user.loginAttempts >= 5) {
+      user.lockUntil = new Date(Date.now() + 5 * 60 * 1000);
+      await user.save();
+
+      errorAuth.accountTemporarilyLocked();
+    }
+
+    await user.save();
+    errorAuth.passwordNotMatch();
+  }
+
+
+
+  user.loginAttempts = 0;
+  user.lockUntil = null;
+  await user.save();
+
+  // Generate token
+  if(!user.twoFactorEnabled){
+    const token = genrateToken({
+    id: user.id,
+    name: user.name,
+  });
+   return {
+      requiresTwoFactor: false,
+      token,
+    };
+  }
+
+
+  const code=crypto.randomInt(100000,999999).toString();
+
+  await otpRepository.deleteLoginOtp(user.email)
+
+  await otpRepository.createLoginOtp(user.email, code);
+
+  // Send OTP by email
+  await mailjetProvider.sendmail(
+    user.email,
+    "Login Verification Code",
+    `<h1>Your login verification code is: ${code}</h1>`
+  );
+
+  return {
+    requiresTwoFactor: true,
+    message: "Verification code sent to your email",
   };
 
-  //user verfied
 
-  if (!userExist.isVerified){
-  errorUser.userNotVerified()
-  };
-  //compare password
 
-  const match = await comparePassword(password,userExist.password);
-  if (!match){
-    errorAuth.passwordNotMatch()
-  };
-
-  //gen tokeen
-  const token =genrateToken({id:userExist.id,name:userExist.name})
-  return token;
 }
+
+
+
+
 
 export async function sendOtp(email) {
   //user exist
@@ -186,6 +247,110 @@ export async function loginGoogle(idToken) {
 
 
 
+export async function enableTwoFactor(userId) {
+  const user = await userRepository.finduserById(userId);
+
+  if (!user) {
+    errorUser.userNotExist();
+  }
+
+  if (user.twoFactorEnabled) {
+    throw new Error("Two-factor verification is already enabled");
+  }
+
+  if (!user.isVerified) {
+    errorUser.userNotVerified();
+  }
+
+  const code = crypto.randomInt(100000, 1000000).toString();
+
+  await otpRepository.createTwoFactorOtp(user.email, code);
+
+  await mailjetProvider.sendmail(
+    user.email,
+    "Enable Two-Factor Verification",
+    `<h1>Your verification code is: ${code}</h1>`
+  );
+
+  return { message: "Verification code sent successfully" };
+}
+
+
+
+export async function verifyEnableTwoFactor(userId, code) {
+
+  const user=await userRepository.finduserById(userId)
+if(!user){
+    errorUser.userNotExist();
+
+}
+if(user.enableTwoFactor){
+      throw new Error("Two-factor verification is already enabled");
+
+}
+
+const otp=await otpRepository.getTwoFactorOtp(user.email)
+
+if(!otp){
+    errorAuth.otpExpired();
+}
+
+if(otp!==code){
+  errorAuth.invalidOtp()
+}
+
+await userRepository.updateUser(user.email,{
+  twoFactorEnabled:true
+})
+
+  await otpRepository.deleteTwoFactorOtp(user.email);
+
+    return { twoFactorEnabled: true };
+
+}
+
+
+
+
+export async function confirmLogin(email, password, code) {
+  const user = await authRepository.userExist(email);
+
+  if (!user) {
+    errorUser.userNotExist();
+  }
+
+  if (!user.isVerified || !user.twoFactorEnabled) {
+    errorAuth.invalidOtp();
+  }
+
+  // Verify password
+  const match = await comparePassword(password, user.password);
+
+  if (!match) {
+    errorAuth.passwordNotMatch();
+  }
+
+  // Get OTP from Redis
+  const otp = await otpRepository.getLoginOtp(user.email);
+
+  if (!otp) {
+    errorAuth.otpExpired();
+  }
+
+  // Compare OTP
+  if (otp !== code) {
+    errorAuth.invalidOtp();
+  }
+
+  // Delete OTP after successful verification
+  await otpRepository.deleteLoginOtp(user.email);
+
+  // Generate token
+  return genrateToken({
+    id: user.id,
+    name: user.name,
+  });
+}
 
 
 
