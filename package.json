@@ -1,9 +1,11 @@
 {
   "scripts": {
-    "dev": "node --watch ./src/server.js"
+    "dev": "node --watch ./src/server.js",
+    "start": "node ./src/server.js"
   },
   "type": "module",
   "dependencies": {
+    "@upstash/redis": "^1.39.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

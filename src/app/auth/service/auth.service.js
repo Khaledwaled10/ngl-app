@@ -196,8 +196,8 @@ if(!otp) {
   errorAuth.otpExpired()
 }
   //check otp true
-if(otp!==code){
-  errorAuth.invalidOtp()
+if (String(otp).trim() !== String(code).trim()) {
+  errorAuth.invalidOtp();
 }
   //
 

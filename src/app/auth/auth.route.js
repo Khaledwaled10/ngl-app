@@ -10,7 +10,7 @@ authRouter.post("/login", authCotroller.login);
 authRouter.post("/register",authCotroller.register );
 authRouter.patch('/verify-account',authCotroller.verfiyAccount)
 authRouter.post('/sendOtp',authCotroller.sendotp)
-authRouter.patch('/reset-password',idEmpotency(),authCotroller.resetPassword)
+authRouter.patch('/reset-password',authCotroller.resetPassword)
 authRouter.post('/loginWithGmail',authCotroller.loginWithGoogle)
 
 

@@ -1,31 +1,27 @@
-import Redis from "ioredis";
 
-export class RediasCacheProvider{
-client ;
+import { Redis } from "@upstash/redis";
 
-constructor(config){
-    this.client=new Redis({
-        host:config.host,
-        port:config.port,
-        password:config.password,
-        lazyConnect:true,
-        maxLoadingRetryTime:3
-    })
-    this.client.on('error',(err)=>console.log('redis server is error',err.message));
-    this.client.connect().catch((err)=>console.log('fail connect to rerdis',err.message))
-}
+export class RediasCacheProvider {
+  constructor() {
+    this.client = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
 
- async set(key,value,ttl){
-return await this.client.set(key,value,'EX',ttl)
-}
+  async set(key, value, ttl) {
+    if (ttl) {
+      return await this.client.set(key, value, { ex: ttl });
+    }
 
-async get(key){
-return await this.client.get(key)
-}
+    return await this.client.set(key, value);
+  }
 
+  async get(key) {
+    return await this.client.get(key);
+  }
 
-async del(key){
-return await this.client.del(key);
-}
-
+  async del(key) {
+    return await this.client.del(key);
+  }
 }

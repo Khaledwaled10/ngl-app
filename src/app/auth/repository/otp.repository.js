@@ -7,11 +7,19 @@ export async function createOtp({ email, code }) {
   return await cacheProvider.set(key, code, 300);
 }
 
+
+
 export async function getOtp(email) {
   const key = `otp:${email}`;
+  const otp = await cacheProvider.get(key);
 
-  return await cacheProvider.get(key);
+  console.log("OTP exists:", otp !== null && otp !== undefined);
+  console.log("OTP type:", typeof otp);
+
+  return otp;
 }
+
+
 
 export async function deleteOtp(email) {
   const key = `otp:${email}`;
