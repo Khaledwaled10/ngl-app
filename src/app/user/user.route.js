@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import {
   uploadArrayFile,
@@ -7,7 +8,6 @@ import {
 import { fileValidation } from "../../pkj/media/fileValidation.js";
 import * as userRepository from "../user/repository/user.repository.js";
 import { AppError } from "../../pkj/error/appError.js";
-import fs from "fs";
 import { guard } from "../../lib/auth/guard.js";
 
 const userRouter = Router();
@@ -19,17 +19,26 @@ userRouter.post(
   fileValidation(),
   async (req, res, next) => {
     try {
+      if (!req.file) {
+        throw new AppError("No profile picture uploaded", 400);
+      }
+
       const user = await userRepository.finduserById(req.user.id);
+
       if (!user) {
         throw new AppError("User not Exist", 404);
       }
-      if (user.profilePicPath) {
-        fs.unlinkSync(user.profilePicPath);
-      }
 
-      userRepository.updateUser(user.email, { profilePicPath: req.file.path });
+      // Temporary mode:
+      // The uploaded file exists only in memory.
+      // It is not saved permanently.
 
-      res.json({ message: "upload profile successfully", success: true });
+      return res.status(200).json({
+        message: "Profile picture received temporarily; it was not saved",
+        success: true,
+        filename: req.file.originalname,
+        size: req.file.size,
+      });
     } catch (error) {
       next(error);
     }
@@ -41,7 +50,15 @@ userRouter.post(
   uploadSingleFile("cv", ["application/pdf", "application/msword"]),
   fileValidation(["application/pdf", "application/msword"]),
   (req, res, next) => {
-    res.json("ok");
+    if (!req.file) {
+      return next(new AppError("No CV uploaded", 400));
+    }
+
+    res.status(200).json({
+      message: "CV received temporarily; it was not saved",
+      filename: req.file.originalname,
+      size: req.file.size,
+    });
   },
 );
 
@@ -49,9 +66,13 @@ userRouter.post(
   "/upload-cover-images",
   uploadArrayFile("cover-images", 8),
   (req, res, next) => {
-    console.log(req.files);
-
-    res.json("ok");
+    res.status(200).json({
+      message: "Images received temporarily; they were not saved",
+      files: (req.files ?? []).map((file) => ({
+        filename: file.originalname,
+        size: file.size,
+      })),
+    });
   },
 );
 

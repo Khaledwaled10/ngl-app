@@ -1,4 +1,4 @@
-import multer, { diskStorage } from "multer";
+import multer, { diskStorage, memoryStorage } from "multer";
 import { AppError } from "../error/appError.js";
 import { allowedFields } from "./fileValidation.js";
 import { randomUUID } from "crypto";
@@ -10,7 +10,7 @@ function fileUpload(allowedTypes) {
       }
       cb(null, true);
     },
-    storage: diskStorage({
+    storage:memoryStorage({
       destination: "uploads",
       filename: function(req, file, cb) {
     
