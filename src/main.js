@@ -2,8 +2,7 @@ import { config } from "dotenv";
 
 config();
 
-import "./lib/db/mongoose.js";
-
+import { connectDB } from "./lib/db/mongoose.js";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -33,9 +32,37 @@ app.use(correlationId);
 
 
 app.use(cookieParser());
-app.use("/auth", authRouter);
-app.use("/user", userRouter);
-app.use("/message", messageRouter);
+
+app.use("/auth", async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+}, authRouter);
+
+
+
+app.use("/user", async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+}, userRouter);
+
+app.use("/message", async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+}, messageRouter);
+
+
 
 app.get("/test", (req, res) => {
   console.log('success')
